@@ -1,0 +1,48 @@
+/dist
+/_Pycache_
+/Versiones
+/README_MEJORAS.txt
+minutoverde.png
+gag.png
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Nuitka / compilados
+dist/
+build/
+*.dist/
+*.build/
+*.onefile-build/
+*.exe
+
+# Salida generada
+salida/
+*.png
+*.pdf
+
+# Excel de trabajo / datos internos
+ListaPrecios.xlsx
+*.xls
+*.xlsx
+
+# Configuración local del usuario
+app_settings.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

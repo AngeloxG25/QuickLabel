@@ -1,0 +1,59 @@
+COMANDO PARA COMPILAR CON NUITKA EN WINDOWS
+===========================================
+
+Requisitos previos dentro del entorno virtual:
+
+python -m pip install --upgrade pip
+python -m pip install nuitka ordered-set zstandard pillow pandas openpyxl reportlab
+
+Ejecutar desde la raíz del proyecto, donde está app.py:
+
+python -m nuitka .\app.py `
+  --standalone `
+  --enable-plugin=tk-inter `
+  --windows-console-mode=disable `
+  --windows-icon-from-ico=assets/label_844652.ico `
+  --output-dir=dist `
+  --assume-yes-for-downloads `
+  --show-progress `
+  --nofollow-import-to=pytest `
+  --nofollow-import-to=unittest `
+  --nofollow-import-to=setuptools `
+  --include-module=tkinter `
+  --include-package=openpyxl `
+  --include-package=PIL `
+  --include-package=reportlab `
+  --include-data-dir=fonts=fonts `
+  --include-data-dir=plantillas=plantillas `
+  --include-data-dir=assets=assets `
+  --include-data-files=config_font.json=config_font.json `
+  --include-data-files=config_layout.json=config_layout.json `
+  --lto=no `
+  --jobs=8 `
+  --windows-file-description="Generador de Etiquetas" `
+  --windows-product-name="QuickLabel" `
+  --windows-company-name="DevAngelo for Teba" `
+  --windows-file-version=1.5.0.0 `
+  --windows-product-version=1.5.0.0 `
+  --output-filename=QuickLabel.exe `
+  --copyright="DevAngelo for Teba"
+
+IMPORTANTE PARA INSTALAR EN OTRO PC
+===================================
+
+1) Copia la carpeta completa:
+   dist\app.dist
+
+2) Dentro estará el ejecutable:
+   GeneradorEtiquetas.exe
+
+3) En el primer inicio, el programa pedirá seleccionar:
+   - carpeta de fonts
+   - carpeta de plantillas
+   - carpeta de salida
+
+4) Si quieres que el programa ya lleve las carpetas por defecto, antes de compilar deja estas carpetas en la raíz del proyecto:
+   - fonts
+   - plantillas
+
+5) El archivo Excel se selecciona desde el programa, por lo que no es obligatorio compilarlo dentro del ejecutable.
