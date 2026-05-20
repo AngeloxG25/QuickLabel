@@ -50,16 +50,27 @@ def obtener_font_path(font_name: Optional[str] = None) -> str:
 
 
 def obtener_fuentes_disponibles() -> list[str]:
+    """Detecta automáticamente fuentes .ttf, .otf y .ttc.
+
+    También revisa subcarpetas dentro de la carpeta de fonts, por si el usuario
+    copia familias completas de fuentes en carpetas separadas.
+    """
     fonts_dir = get_fonts_dir()
-    if not os.path.exists(fonts_dir):
+    if not os.path.isdir(fonts_dir):
         return []
 
-    fuentes = [
-        archivo
-        for archivo in os.listdir(fonts_dir)
-        if archivo.lower().endswith((".ttf", ".otf"))
-    ]
-    return sorted(fuentes)
+    extensiones = (".ttf", ".otf", ".ttc")
+    fuentes = []
+
+    for raiz, _dirs, archivos in os.walk(fonts_dir):
+        for archivo in archivos:
+            if not archivo.lower().endswith(extensiones):
+                continue
+            ruta_abs = os.path.join(raiz, archivo)
+            ruta_rel = os.path.relpath(ruta_abs, fonts_dir)
+            fuentes.append(os.path.normpath(ruta_rel))
+
+    return sorted(fuentes, key=str.lower)
 
 
 def guardar_fuente(nombre_fuente: str) -> None:

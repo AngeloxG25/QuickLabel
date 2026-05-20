@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from copy import deepcopy
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,7 @@ ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 APP_ICON_PATH = os.path.join(ASSETS_DIR, "label_844652.ico")
 
 APP_NAME = "QuickLabel"
-APP_VERSION = "1.5.0"
+APP_VERSION = "1.5.1"
 APP_DEVELOPER = "DevAngelo for Teba"
 APP_DESCRIPTION = "Generador de etiquetas de precios con vista previa interactiva."
 
@@ -89,12 +90,61 @@ def get_default_excel_path() -> str:
     return DEFAULT_EXCEL_PATH
 
 
+PLANTILLA_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
+
+# Nombres históricos para no romper Excel antiguos que ya usaban estas marcas.
+LEGACY_PLANTILLA_NAMES = {
+    "minutoverde": "MINUTO VERDE",
+    "gag": "GAG",
+    "sadia": "SADIA",
+}
+
+
+def _nombre_plantilla_desde_archivo(nombre_archivo: str) -> str:
+    """Convierte el nombre del archivo en el nombre visible de la plantilla.
+
+    Ejemplos:
+    - minutoverde.png -> MINUTOVERDE
+    - minuto_verde.png -> MINUTO VERDE
+    - mi-plantilla.jpg -> MI PLANTILLA
+    """
+    nombre_base = os.path.splitext(os.path.basename(nombre_archivo))[0]
+    nombre_legacy = LEGACY_PLANTILLA_NAMES.get(nombre_base.lower())
+    if nombre_legacy:
+        return nombre_legacy
+
+    nombre = nombre_base
+    nombre = re.sub(r"[_-]+", " ", nombre)
+    nombre = re.sub(r"\s+", " ", nombre).strip().upper()
+    return nombre or "PLANTILLA"
+
+
 def get_plantillas_map() -> dict:
+    """Detecta automáticamente las plantillas disponibles.
+
+    Cualquier imagen compatible que el usuario ponga en la carpeta de plantillas
+    aparecerá en el selector y se podrá usar en el Excel usando el nombre del
+    archivo sin extensión, en mayúsculas.
+    """
     plantillas_dir = get_plantillas_dir()
-    return {
-        "MINUTO VERDE": os.path.join(plantillas_dir, "minutoverde.png"),
-        "GAG": os.path.join(plantillas_dir, "gag.png"),
-    }
+    plantillas = {}
+
+    if os.path.isdir(plantillas_dir):
+        for archivo in sorted(os.listdir(plantillas_dir), key=str.lower):
+            ruta = os.path.join(plantillas_dir, archivo)
+            if not os.path.isfile(ruta):
+                continue
+            if not archivo.lower().endswith(PLANTILLA_EXTENSIONS):
+                continue
+
+            nombre_visible = _nombre_plantilla_desde_archivo(archivo)
+
+            # Si existen archivos que generan el mismo nombre visible, conserva
+            # el primero y evita sobrescribir de forma silenciosa.
+            if nombre_visible not in plantillas:
+                plantillas[nombre_visible] = ruta
+
+    return plantillas
 
 
 # Compatibilidad con versiones anteriores.

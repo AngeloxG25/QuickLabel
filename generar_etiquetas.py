@@ -124,7 +124,7 @@ def generar_etiquetas(font_name: str | None = None, progreso_callback=None, exce
 
         if marca not in plantillas:
 
-            mensaje = f"[ERROR] Fila {fila_numero}: marca no encontrada: {marca}"
+            mensaje = f"[ERROR] Fila {fila_numero}: plantilla/marca no encontrada: {marca}. Debe coincidir con el nombre del archivo de la plantilla sin extensión."
 
             print(mensaje)
 

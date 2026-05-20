@@ -70,7 +70,7 @@ def renderizar_etiqueta(
 
     plantillas = get_plantillas_map()
     if marca not in plantillas:
-        raise ValueError(f"Marca no encontrada en PLANTILLAS: {marca}")
+        raise ValueError(f"Plantilla no encontrada: {marca}. Agrega una imagen con ese nombre en la carpeta de plantillas o actualiza el selector.")
 
     ruta_plantilla = plantillas[marca]
     if os.path.exists(ruta_plantilla):

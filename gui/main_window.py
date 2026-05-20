@@ -180,7 +180,7 @@ class App(tk.Tk):
         self.running = False
 
         plantillas = get_plantillas_map()
-        plantilla_inicial = next(iter(plantillas.keys()))
+        plantilla_inicial = next(iter(plantillas.keys()), "")
 
         self.template_var = tk.StringVar(value=plantilla_inicial)
         self.font_var = tk.StringVar(value=cargar_fuente())
@@ -275,6 +275,8 @@ class App(tk.Tk):
         menu_ajustes.add_command(label="Cambiar ubicación de plantillas...", command=lambda: self.cambiar_directorio("plantillas_dir", "Selecciona la carpeta de plantillas"))
         menu_ajustes.add_command(label="Cambiar carpeta de salida...", command=lambda: self.cambiar_directorio("output_dir", "Selecciona la carpeta de salida"))
         menu_ajustes.add_separator()
+        menu_ajustes.add_command(label="Actualizar plantillas y fonts", command=self.actualizar_listas_dinamicas)
+        menu_ajustes.add_separator()
         menu_ajustes.add_command(label="Restaurar ubicaciones por defecto", command=self.restaurar_rutas_predeterminadas)
         menubar.add_cascade(label="Ajustes", menu=menu_ajustes)
 
@@ -347,8 +349,9 @@ class App(tk.Tk):
         general = sec_general.body
         ttk.Label(general, text="Plantilla", style="Card.TLabel").pack(anchor="w")
         self.template_combo = ttk.Combobox(general, textvariable=self.template_var, values=list(get_plantillas_map().keys()), state="readonly", width=34)
-        self.template_combo.pack(anchor="w", pady=(4, 14), fill="x")
+        self.template_combo.pack(anchor="w", pady=(4, 8), fill="x")
         self.template_combo.bind("<<ComboboxSelected>>", lambda _e: self.actualizar_preview())
+        ttk.Button(general, text="Actualizar plantillas y fonts", command=self.actualizar_listas_dinamicas).pack(fill="x", pady=(0, 14))
 
         ttk.Label(general, text="Fuente", style="Card.TLabel").pack(anchor="w")
         self.font_combo = ttk.Combobox(general, textvariable=self.font_var, state="readonly", width=34)
@@ -423,16 +426,37 @@ class App(tk.Tk):
             self.after_cancel(self.resize_after_id)
         self.resize_after_id = self.after(120, self.actualizar_preview)
 
+    def _cargar_plantillas(self):
+        plantillas = get_plantillas_map()
+        nombres = list(plantillas.keys())
+        self.template_combo["values"] = nombres
+
+        if not nombres:
+            self.template_var.set("")
+            self.template_combo.configure(state="disabled")
+            self.status_var.set("No hay plantillas. Agrega imágenes .png, .jpg, .jpeg, .webp o .bmp en la carpeta de plantillas.")
+            return
+
+        self.template_combo.configure(state="readonly")
+        if self.template_var.get() not in nombres:
+            self.template_var.set(nombres[0])
+
     def _cargar_fuentes(self):
         fuentes = obtener_fuentes_disponibles()
         self.font_combo["values"] = fuentes
         if not fuentes:
-            self.status_var.set("No hay fuentes en la carpeta seleccionada. Agrega archivos .ttf u .otf.")
+            self.status_var.set("No hay fuentes en la carpeta seleccionada. Agrega archivos .ttf, .otf o .ttc.")
             self.font_combo.configure(state="disabled")
         else:
             self.font_combo.configure(state="readonly")
             if self.font_var.get() not in fuentes:
                 self.font_var.set(fuentes[0])
+
+    def actualizar_listas_dinamicas(self):
+        self._cargar_plantillas()
+        self._cargar_fuentes()
+        self.actualizar_preview()
+        self.status_var.set("Plantillas y fonts actualizadas desde las carpetas configuradas.")
 
     def _configuracion_inicial_si_corresponde(self):
         if os.path.exists(APP_SETTINGS_PATH):
@@ -477,9 +501,7 @@ class App(tk.Tk):
 
     def _aplicar_cambios_rutas(self, mostrar_mensaje: bool = False):
         self.settings = load_app_settings()
-        self.template_combo["values"] = list(get_plantillas_map().keys())
-        if self.template_var.get() not in self.template_combo["values"]:
-            self.template_var.set(next(iter(get_plantillas_map().keys())))
+        self._cargar_plantillas()
         self._cargar_fuentes()
         self.actualizar_preview()
         salida = self.settings.get("output_dir", "")
@@ -495,6 +517,11 @@ class App(tk.Tk):
 
     def actualizar_preview(self):
         try:
+            if not self.template_var.get():
+                self.preview_canvas.delete("all")
+                self.preview_canvas.create_text(20, 20, anchor="nw", text="No hay plantillas disponibles. Agrega imágenes en la carpeta de plantillas y presiona Actualizar.", fill="red")
+                return
+
             imagen = renderizar_etiqueta(
                 producto=self.product_var.get(),
                 marca=self.template_var.get(),
