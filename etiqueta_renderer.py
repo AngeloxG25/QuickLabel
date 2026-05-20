@@ -19,7 +19,7 @@ from config import (
     SIZE_SECUNDARIO,
 )
 from config import get_plantillas_map
-from utils import ajustar_fuente, cargar_font_fijo, cargar_layout, dividir_texto_por_ancho, formato_precio
+from utils import cargar_font_fijo, cargar_layout, dividir_texto_por_ancho, formato_precio, obtener_escala_layout
 
 
 def _crear_plantilla_temporal(nombre_marca: str) -> Image.Image:
@@ -110,11 +110,12 @@ def renderizar_etiqueta(
     # Precio principal
     precio_x = int(layout["precio"].get("x") or DEFAULT_LAYOUT["precio"]["x"])
     precio_y = int(layout["precio"].get("y") or DEFAULT_LAYOUT["precio"]["y"])
-    font_precio = ajustar_fuente(draw, precio_principal, 700, SIZE_PRECIO, font_name)
+    # Tamaño fijo: evita que la letra cambie cuando el usuario escribe más o menos datos.
+    font_precio = cargar_font_fijo(SIZE_PRECIO, font_name)
     draw.text((precio_x, precio_y), precio_principal, fill=COLOR_VERDE, font=font_precio, anchor="mm")
 
     # Lateral
-    font_lateral = ajustar_fuente(draw, texto_lateral, 220, SIZE_LATERAL, font_name)
+    font_lateral = cargar_font_fijo(SIZE_LATERAL, font_name)
     lateral_cfg = layout.get("lateral", {})
     lateral_x = lateral_cfg.get("x")
     lateral_y = lateral_cfg.get("y")
@@ -134,7 +135,13 @@ def renderizar_etiqueta(
     if texto_secundario:
         sec_x = int(layout["secundario"].get("x") or DEFAULT_LAYOUT["secundario"]["x"])
         sec_y = int(layout["secundario"].get("y") or DEFAULT_LAYOUT["secundario"]["y"])
-        font_secundario = ajustar_fuente(draw, texto_secundario, 500, SIZE_SECUNDARIO, font_name)
+        font_secundario = cargar_font_fijo(SIZE_SECUNDARIO, font_name)
         draw.text((sec_x, sec_y), texto_secundario, fill=COLOR_VERDE, font=font_secundario, anchor="mm")
+
+    escala = obtener_escala_layout(layout)
+    if escala != 1.0:
+        nuevo_ancho = max(1, int(round(plantilla.width * escala)))
+        nuevo_alto = max(1, int(round(plantilla.height * escala)))
+        plantilla = plantilla.resize((nuevo_ancho, nuevo_alto), Image.Resampling.LANCZOS)
 
     return plantilla

@@ -11,6 +11,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
 from config import get_output_dir
+from utils import obtener_escala_layout
 
 
 def _dibujar_lineas_corte(pdf, x: float, y: float, width: float, height: float) -> None:
@@ -35,8 +36,9 @@ def generar_pdf(limpiar_imagenes: bool = True, lineas_corte: bool = True) -> str
     page_width, page_height = letter
     pdf = canvas.Canvas(pdf_path, pagesize=letter)
 
-    etiqueta_width = 580
-    etiqueta_height = 190
+    escala = obtener_escala_layout()
+    etiqueta_width = 580 * escala
+    etiqueta_height = 190 * escala
     margen_x = 10
     margen_y = 10
     espacio_vertical = 1

@@ -42,6 +42,8 @@ from utils import (
     guardar_fuente,
     guardar_layout,
     obtener_fuentes_disponibles,
+    obtener_escala_layout,
+    normalizar_escala_etiqueta,
     restaurar_layout_default,
 )
 
@@ -173,6 +175,8 @@ class App(tk.Tk):
         self.drag_item = None
         self.drag_start = None
         self.layout = cargar_layout()
+        self.label_scale_var = tk.DoubleVar(value=obtener_escala_layout(self.layout) * 100)
+        self.label_scale_text_var = tk.StringVar(value=self._texto_escala_etiqueta())
         self.resize_after_id = None
         self.entry_after_id = None
 
@@ -373,8 +377,36 @@ class App(tk.Tk):
         ttk.Button(pos, text="Guardar posiciones", style="Primary.TButton", command=self.guardar_posiciones_actuales).pack(fill="x", pady=(0, 8))
         ttk.Button(pos, text="Restaurar posiciones originales", command=self.restaurar_posiciones).pack(fill="x", pady=(0, 4))
 
-        # 5. Generar archivos
-        sec_generar = CollapsibleSection(panel, "5. Generar archivos", opened=True, on_toggle=self._refrescar_panel_scroll)
+        # 5. Tamaño de etiqueta
+        sec_tamano = CollapsibleSection(panel, "5. Tamaño de etiqueta", opened=False, on_toggle=self._refrescar_panel_scroll)
+        sec_tamano.pack(fill="x", pady=(0, 8))
+        tamano = sec_tamano.body
+        ttk.Label(
+            tamano,
+            text="Ajusta el tamaño final de la etiqueta. La escala mantiene siempre la relación de aspecto.",
+            style="Card.TLabel",
+            wraplength=260,
+        ).pack(anchor="w", pady=(0, 8))
+        ttk.Label(tamano, textvariable=self.label_scale_text_var, style="Card.TLabel").pack(anchor="w", pady=(0, 4))
+        self.label_scale_control = tk.Scale(
+            tamano,
+            from_=60,
+            to=100,
+            orient="horizontal",
+            resolution=1,
+            variable=self.label_scale_var,
+            command=self._on_label_scale_change,
+            bg="white",
+            highlightthickness=0,
+        )
+        self.label_scale_control.pack(fill="x", pady=(0, 8))
+        botones_tamano = ttk.Frame(tamano, style="Card.TFrame")
+        botones_tamano.pack(fill="x")
+        ttk.Button(botones_tamano, text="100%", command=self.restaurar_tamano_etiqueta).pack(side="left", expand=True, fill="x", padx=(0, 4))
+        ttk.Button(botones_tamano, text="Guardar tamaño", style="Primary.TButton", command=self.guardar_tamano_etiqueta).pack(side="left", expand=True, fill="x", padx=(4, 0))
+
+        # 6. Generar archivos
+        sec_generar = CollapsibleSection(panel, "6. Generar archivos", opened=True, on_toggle=self._refrescar_panel_scroll)
         sec_generar.pack(fill="x", pady=(0, 8))
         generar = sec_generar.body
         ttk.Button(generar, text="Generar solo PNG", command=self.generar_etiquetas_async).pack(fill="x", pady=(0, 8))
@@ -404,6 +436,33 @@ class App(tk.Tk):
         ttk.Label(preview_card, text="Registro de proceso", style="Card.TLabel", font=("Segoe UI", 11, "bold")).grid(row=2, column=0, sticky="w")
         self.log_text = tk.Text(preview_card, height=8, wrap="word", font=("Consolas", 9), bg="#111827", fg="#e5e7eb")
         self.log_text.grid(row=3, column=0, sticky="ew", pady=(8, 0))
+
+    def _texto_escala_etiqueta(self) -> str:
+        porcentaje = int(round(float(self.label_scale_var.get()))) if hasattr(self, "label_scale_var") else 100
+        return f"Tamaño actual: {porcentaje}%"
+
+    def _obtener_escala_etiqueta_actual(self) -> float:
+        escala = normalizar_escala_etiqueta(float(self.label_scale_var.get()) / 100)
+        self.layout.setdefault("etiqueta", {})["scale"] = escala
+        return escala
+
+    def _on_label_scale_change(self, _value=None):
+        self._obtener_escala_etiqueta_actual()
+        self.label_scale_text_var.set(self._texto_escala_etiqueta())
+        self.actualizar_preview()
+
+    def restaurar_tamano_etiqueta(self):
+        self.label_scale_var.set(100)
+        self._on_label_scale_change()
+
+    def guardar_tamano_etiqueta(self):
+        try:
+            self._obtener_escala_etiqueta_actual()
+            guardar_layout(self.layout)
+            self.status_var.set("Tamaño de etiqueta guardado correctamente")
+            messagebox.showinfo("Tamaño guardado", "El tamaño de etiqueta quedó guardado para la generación de PNG y PDF.")
+        except Exception as exc:
+            messagebox.showerror("Error", str(exc))
 
     def _refrescar_panel_scroll(self):
         if hasattr(self, "scroll_panel"):
@@ -522,6 +581,7 @@ class App(tk.Tk):
                 self.preview_canvas.create_text(20, 20, anchor="nw", text="No hay plantillas disponibles. Agrega imágenes en la carpeta de plantillas y presiona Actualizar.", fill="red")
                 return
 
+            self._obtener_escala_etiqueta_actual()
             imagen = renderizar_etiqueta(
                 producto=self.product_var.get(),
                 marca=self.template_var.get(),
@@ -553,7 +613,7 @@ class App(tk.Tk):
             self.preview_canvas.create_image(offset_x, offset_y, image=self.preview_photo, anchor="nw", tags=("preview",))
             self._dibujar_puntos_arrastre()
 
-            self.status_var.set(f"Vista previa usando: {self.font_var.get()}")
+            self.status_var.set(f"Vista previa usando: {self.font_var.get()} | Tamaño etiqueta: {int(round(self.label_scale_var.get()))}%")
         except Exception as exc:
             self.preview_canvas.delete("all")
             self.preview_canvas.create_text(20, 20, anchor="nw", text=f"No se pudo generar la vista previa:\n{exc}", fill="red")
@@ -567,14 +627,18 @@ class App(tk.Tk):
             x = precio_x + 300
         x = int(x or 0)
         y = int(y or 0)
+        escala_etiqueta = self._obtener_escala_etiqueta_actual()
         off_x, off_y = self.preview_offset
-        return int(off_x + x * self.preview_scale), int(off_y + y * self.preview_scale)
+        return int(off_x + (x * escala_etiqueta) * self.preview_scale), int(off_y + (y * escala_etiqueta) * self.preview_scale)
 
     def _canvas_to_layout(self, canvas_x: int, canvas_y: int) -> tuple[int, int]:
         off_x, off_y = self.preview_offset
-        x = int((canvas_x - off_x) / self.preview_scale)
-        y = int((canvas_y - off_y) / self.preview_scale)
+        escala_etiqueta = self._obtener_escala_etiqueta_actual()
+        x = int(((canvas_x - off_x) / self.preview_scale) / escala_etiqueta)
+        y = int(((canvas_y - off_y) / self.preview_scale) / escala_etiqueta)
         w, h = self.preview_original_size
+        w = int(w / escala_etiqueta) if escala_etiqueta else w
+        h = int(h / escala_etiqueta) if escala_etiqueta else h
         return max(0, min(x, w)), max(0, min(y, h))
 
     def _dibujar_puntos_arrastre(self):
@@ -636,7 +700,10 @@ class App(tk.Tk):
             messagebox.showerror("Error", str(exc))
 
     def restaurar_posiciones(self):
+        escala_actual = self._obtener_escala_etiqueta_actual()
         self.layout = restaurar_layout_default()
+        self.layout.setdefault("etiqueta", {})["scale"] = escala_actual
+        guardar_layout(self.layout)
         self.actualizar_preview()
         self.status_var.set("Posiciones originales restauradas")
 

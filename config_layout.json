@@ -14,5 +14,8 @@
     "secundario": {
         "x": 1603,
         "y": 518
+    },
+    "etiqueta": {
+        "scale": 0.9
     }
 }

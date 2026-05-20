@@ -18,6 +18,8 @@ from config import (
     CONFIG_LAYOUT_PATH,
     DEFAULT_FONT_NAME,
     DEFAULT_LAYOUT,
+    MAX_LABEL_SCALE,
+    MIN_LABEL_SCALE,
     get_fonts_dir,
     get_output_dir,
 )
@@ -118,6 +120,29 @@ def restaurar_layout_default() -> dict:
     guardar_layout(layout)
     return layout
 
+
+
+def normalizar_escala_etiqueta(valor, default: float = 1.0) -> float:
+    """Devuelve la escala de etiqueta limitada a un rango seguro.
+
+    1.00 = tamaño normal.
+    0.80 = 80% del tamaño normal.
+    1.20 = 120% del tamaño normal.
+    """
+    try:
+        escala = float(valor)
+    except (TypeError, ValueError):
+        escala = default
+    return max(MIN_LABEL_SCALE, min(MAX_LABEL_SCALE, escala))
+
+
+def obtener_escala_layout(layout: dict | None = None) -> float:
+    if not isinstance(layout, dict):
+        layout = cargar_layout()
+    etiqueta = layout.get("etiqueta", {})
+    if not isinstance(etiqueta, dict):
+        etiqueta = {}
+    return normalizar_escala_etiqueta(etiqueta.get("scale", 1.0))
 
 def formato_precio(valor) -> Optional[str]:
     try:

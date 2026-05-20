@@ -25,7 +25,7 @@ ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 APP_ICON_PATH = os.path.join(ASSETS_DIR, "label_844652.ico")
 
 APP_NAME = "QuickLabel"
-APP_VERSION = "1.5.1"
+APP_VERSION = "1.6.0"
 APP_DEVELOPER = "DevAngelo for Teba"
 APP_DESCRIPTION = "Generador de etiquetas de precios con vista previa interactiva."
 
@@ -163,11 +163,16 @@ POS_PRECIO = (1400, 299)
 POS_LATERAL = (1686, 417)
 POS_SECUNDARIO = (1603, 518)
 
+DEFAULT_LABEL_SCALE = 1.0
+MIN_LABEL_SCALE = 0.60
+MAX_LABEL_SCALE = 1.40
+
 DEFAULT_LAYOUT = {
     "producto": {"x": POS_PRODUCTO_X, "y": POS_PRODUCTO_Y},
     "precio": {"x": POS_PRECIO[0], "y": POS_PRECIO[1]},
     "lateral": {"x": POS_LATERAL[0], "y": POS_LATERAL[1]},
     "secundario": {"x": POS_SECUNDARIO[0], "y": POS_SECUNDARIO[1]},
+    "etiqueta": {"scale": DEFAULT_LABEL_SCALE},
 }
 
 SIZE_PRODUCTO = 85
